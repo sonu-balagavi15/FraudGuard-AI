@@ -19,7 +19,7 @@ import "./App.css";
 const API_URL = "https://fraudguard-ai-te8y.onrender.com";
 
 // ============================================================
-// HELPER
+// ERROR HELPER
 // ============================================================
 
 function getErrorMessage(data, fallback = "Something went wrong.") {
@@ -85,21 +85,22 @@ function Login() {
       }
 
       if (!data.access_token) {
-        throw new Error("Login successful, but access token was not received.");
+        throw new Error("Login successful, but token was not received.");
       }
 
       localStorage.setItem("token", data.access_token);
 
-      const userName =
+      localStorage.setItem(
+        "userName",
         data.name ||
         data.user?.name ||
-        email.split("@")[0];
-
-      localStorage.setItem("userName", userName);
+        email.split("@")[0]
+      );
 
       navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
+
       setError(
         typeof error?.message === "string"
           ? error.message
@@ -113,17 +114,28 @@ function Login() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="brand-icon">🛡️</div>
+        <div className="auth-logo">
+          <span>🛡️</span>
+        </div>
 
         <h1>FraudGuard</h1>
-        <p className="brand-subtitle">AI SECURITY</p>
+
+        <div className="auth-security">
+          AI SECURITY
+        </div>
 
         <div className="auth-heading">
           <h2>Welcome back</h2>
-          <p>Sign in to monitor suspicious transactions.</p>
+          <p>
+            Sign in to monitor suspicious transactions.
+          </p>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleLogin}>
           <label>Email</label>
@@ -146,7 +158,10 @@ function Login() {
             required
           />
 
-          <button type="submit" disabled={loading}>
+          <button
+            type="submit"
+            disabled={loading}
+          >
             {loading ? "Signing in..." : "Sign In →"}
           </button>
         </form>
@@ -154,8 +169,8 @@ function Login() {
         <p className="switch-auth">
           Don't have an account?{" "}
           <button
-            type="button"
             className="link-button"
+            type="button"
             onClick={() => navigate("/register")}
           >
             Create account
@@ -189,21 +204,22 @@ function Register() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim(),
-          password,
-        }),
-      });
+      const response = await fetch(
+        `${API_URL}/auth/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: name.trim(),
+            email: email.trim(),
+            password,
+          }),
+        }
+      );
 
       const data = await response.json();
-
-      console.log("Registration response:", data);
 
       if (!response.ok) {
         throw new Error(
@@ -219,16 +235,11 @@ function Register() {
     } catch (error) {
       console.error("Registration error:", error);
 
-      let message = "Registration failed.";
-
-      if (error?.message) {
-        message =
-          typeof error.message === "string"
-            ? error.message
-            : JSON.stringify(error.message);
-      }
-
-      setError(message);
+      setError(
+        typeof error?.message === "string"
+          ? error.message
+          : "Registration failed."
+      );
     } finally {
       setLoading(false);
     }
@@ -237,14 +248,21 @@ function Register() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="brand-icon">🛡️</div>
+        <div className="auth-logo">
+          <span>🛡️</span>
+        </div>
 
         <h1>FraudGuard</h1>
-        <p className="brand-subtitle">AI SECURITY</p>
+
+        <div className="auth-security">
+          AI SECURITY
+        </div>
 
         <div className="auth-heading">
           <h2>Create account</h2>
-          <p>Start monitoring suspicious transactions.</p>
+          <p>
+            Start monitoring suspicious transactions.
+          </p>
         </div>
 
         {error && (
@@ -287,20 +305,25 @@ function Register() {
             placeholder="Create a password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
             minLength={6}
+            required
           />
 
-          <button type="submit" disabled={loading}>
-            {loading ? "Creating account..." : "Create Account →"}
+          <button
+            type="submit"
+            disabled={loading}
+          >
+            {loading
+              ? "Creating account..."
+              : "Create Account →"}
           </button>
         </form>
 
         <p className="switch-auth">
           Already have an account?{" "}
           <button
-            type="button"
             className="link-button"
+            type="button"
             onClick={() => navigate("/login")}
           >
             Sign in
@@ -312,11 +335,178 @@ function Register() {
 }
 
 // ============================================================
+// SIDEBAR
+// ============================================================
+
+function Sidebar({ activePage, setActivePage, onLogout }) {
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-brand">
+        <div className="brand-shield">
+          🛡️
+        </div>
+
+        <div>
+          <h1>FraudGuard</h1>
+          <span>AI SECURITY</span>
+        </div>
+      </div>
+
+      <div className="system-status">
+        <span className="status-dot"></span>
+        SYSTEM OPERATIONAL
+      </div>
+
+      <nav className="sidebar-nav">
+        <button
+          className={
+            activePage === "dashboard"
+              ? "nav-item active"
+              : "nav-item"
+          }
+          onClick={() => setActivePage("dashboard")}
+        >
+          <span>⌂</span>
+          Dashboard
+        </button>
+
+        <button
+          className={
+            activePage === "analyze"
+              ? "nav-item active"
+              : "nav-item"
+          }
+          onClick={() => setActivePage("analyze")}
+        >
+          <span>◉</span>
+          Analyze
+        </button>
+
+        <button
+          className={
+            activePage === "transactions"
+              ? "nav-item active"
+              : "nav-item"
+          }
+          onClick={() =>
+            setActivePage("transactions")
+          }
+        >
+          <span>☷</span>
+          Transactions
+        </button>
+      </nav>
+
+      <div className="sidebar-bottom">
+        <div className="protection-card">
+          <div className="protection-icon">
+            ✦
+          </div>
+
+          <div>
+            <strong>AI Protection Active</strong>
+            <p>
+              Your transaction monitoring
+              system is active.
+            </p>
+          </div>
+        </div>
+
+        <button
+          className="sidebar-logout"
+          onClick={onLogout}
+        >
+          ↪ Logout
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+// ============================================================
+// HERO
+// ============================================================
+
+function Hero({ onAnalyze, totalAnalyzed }) {
+  return (
+    <section className="hero-card">
+      <div className="hero-grid"></div>
+
+      <div className="live-pill">
+        <span></span>
+        LIVE MONITORING
+      </div>
+
+      <div className="hero-content">
+        <div className="hero-left">
+          <div className="hero-label">
+            ✦ MACHINE LEARNING SECURITY
+          </div>
+
+          <h1>
+            Monitor.
+            <br />
+            <span>Detect.</span>
+            <br />
+            Protect.
+          </h1>
+
+          <p>
+            Intelligent transaction analysis
+            powered by machine learning.
+            <br />
+            Detect suspicious activity before it
+            becomes a threat.
+          </p>
+
+          <button
+            className="hero-button"
+            onClick={onAnalyze}
+          >
+            Analyze a transaction →
+          </button>
+        </div>
+
+        <div className="hero-visual">
+          <div className="risk-card">
+            <small>RISK ENGINE</small>
+            <strong>ACTIVE</strong>
+          </div>
+
+          <div className="orbit orbit-one"></div>
+          <div className="orbit orbit-two"></div>
+          <div className="orbit orbit-three"></div>
+
+          <div className="security-core">
+            <div className="core-shield">
+              🛡️
+            </div>
+            <span>AI</span>
+          </div>
+
+          <div className="model-card">
+            <small>MODEL</small>
+            <strong>
+              {totalAnalyzed > 0
+                ? "ONLINE"
+                : "READY"}
+            </strong>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
 // DASHBOARD
 // ============================================================
 
 function Dashboard() {
   const navigate = useNavigate();
+
+  const [activePage, setActivePage] =
+    useState("dashboard");
 
   const [userName, setUserName] = useState(
     localStorage.getItem("userName") || "User"
@@ -350,27 +540,27 @@ function Dashboard() {
 
   const fetchTransactions = async () => {
     try {
-      const response = await fetch(`${API_URL}/transactions`);
+      const response = await fetch(
+        `${API_URL}/transactions`
+      );
 
-      if (!response.ok) {
-        return;
-      }
+      if (!response.ok) return;
 
       const data = await response.json();
 
-      setTransactions(data.transactions || []);
+      setTransactions(
+        data.transactions || []
+      );
     } catch (error) {
-      console.error("History error:", error);
+      console.error(error);
     }
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
   };
 
   const handlePredict = async (e) => {
@@ -382,50 +572,59 @@ function Dashboard() {
 
     try {
       const amount = Number(form.amount);
-      const transactionHour = Number(form.transactionHour);
-      const distanceFromHome = Number(form.distanceFromHome);
-      const transactionsLast24h = Number(form.transactionsLast24h);
-      const accountAgeDays = Number(form.accountAgeDays);
-      const merchantRiskPercent = Number(form.merchantRisk);
-      const deviceChange = Number(form.deviceChange);
+      const transactionHour = Number(
+        form.transactionHour
+      );
+      const distanceFromHome = Number(
+        form.distanceFromHome
+      );
+      const transactionsLast24h = Number(
+        form.transactionsLast24h
+      );
+      const accountAgeDays = Number(
+        form.accountAgeDays
+      );
+      const merchantRiskPercent = Number(
+        form.merchantRisk
+      );
+      const deviceChange = Number(
+        form.deviceChange
+      );
 
-      if (Number.isNaN(amount) || amount < 0) {
-        throw new Error("Amount must be 0 or greater.");
-      }
-
-      if (
-        Number.isNaN(transactionHour) ||
-        transactionHour < 0 ||
-        transactionHour > 23
-      ) {
-        throw new Error("Transaction hour must be between 0 and 23.");
-      }
-
-      if (
-        Number.isNaN(distanceFromHome) ||
-        distanceFromHome < 0
-      ) {
-        throw new Error("Distance from home must be 0 or greater.");
-      }
-
-      if (
-        Number.isNaN(transactionsLast24h) ||
-        transactionsLast24h < 0
-      ) {
+      if (amount < 0) {
         throw new Error(
-          "Transactions in last 24 hours must be 0 or greater."
+          "Amount cannot be negative."
         );
       }
 
       if (
-        Number.isNaN(accountAgeDays) ||
-        accountAgeDays < 0
+        transactionHour < 0 ||
+        transactionHour > 23
       ) {
-        throw new Error("Account age must be 0 or greater.");
+        throw new Error(
+          "Transaction hour must be between 0 and 23."
+        );
+      }
+
+      if (distanceFromHome < 0) {
+        throw new Error(
+          "Distance cannot be negative."
+        );
+      }
+
+      if (transactionsLast24h < 0) {
+        throw new Error(
+          "Transactions cannot be negative."
+        );
+      }
+
+      if (accountAgeDays < 0) {
+        throw new Error(
+          "Account age cannot be negative."
+        );
       }
 
       if (
-        Number.isNaN(merchantRiskPercent) ||
         merchantRiskPercent < 0 ||
         merchantRiskPercent > 100
       ) {
@@ -434,29 +633,37 @@ function Dashboard() {
         );
       }
 
-      const merchantRisk = merchantRiskPercent / 100;
-
-      const response = await fetch(`${API_URL}/predict`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          amount,
-          transaction_hour: transactionHour,
-          distance_from_home: distanceFromHome,
-          transactions_last_24h: transactionsLast24h,
-          account_age_days: accountAgeDays,
-          merchant_risk: merchantRisk,
-          device_change: deviceChange,
-        }),
-      });
+      const response = await fetch(
+        `${API_URL}/predict`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            amount,
+            transaction_hour: transactionHour,
+            distance_from_home:
+              distanceFromHome,
+            transactions_last_24h:
+              transactionsLast24h,
+            account_age_days:
+              accountAgeDays,
+            merchant_risk:
+              merchantRiskPercent / 100,
+            device_change: deviceChange,
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          getErrorMessage(data, "Prediction failed.")
+          getErrorMessage(
+            data,
+            "Prediction failed."
+          )
         );
       }
 
@@ -464,12 +671,11 @@ function Dashboard() {
 
       await fetchTransactions();
     } catch (error) {
-      console.error("Prediction error:", error);
+      console.error(error);
 
       setError(
-        typeof error?.message === "string"
-          ? error.message
-          : "Prediction failed."
+        error?.message ||
+        "Prediction failed."
       );
     } finally {
       setLoading(false);
@@ -483,26 +689,36 @@ function Dashboard() {
     navigate("/login");
   };
 
-  const totalAnalyzed = transactions.length;
+  const totalAnalyzed =
+    transactions.length;
 
-  const fraudCount = transactions.filter(
-    (item) => item.prediction === "FRAUD"
-  ).length;
+  const fraudCount =
+    transactions.filter(
+      (item) =>
+        item.prediction === "FRAUD"
+    ).length;
 
-  const normalCount = transactions.filter(
-    (item) => item.prediction === "NORMAL"
-  ).length;
+  const normalCount =
+    transactions.filter(
+      (item) =>
+        item.prediction === "NORMAL"
+    ).length;
 
-  const totalAmount = transactions.reduce(
-    (sum, item) => sum + Number(item.amount || 0),
-    0
-  );
+  const totalAmount =
+    transactions.reduce(
+      (sum, item) =>
+        sum + Number(item.amount || 0),
+      0
+    );
 
   const averageRisk =
     transactions.length > 0
       ? transactions.reduce(
         (sum, item) =>
-          sum + Number(item.fraud_probability || 0),
+          sum +
+          Number(
+            item.fraud_probability || 0
+          ),
         0
       ) / transactions.length
       : 0;
@@ -518,372 +734,528 @@ function Dashboard() {
     },
   ];
 
+  const scrollToAnalyze = () => {
+    setActivePage("analyze");
+
+    setTimeout(() => {
+      document
+        .getElementById("analyze-section")
+        ?.scrollIntoView({
+          behavior: "smooth",
+        });
+    }, 100);
+  };
+
   return (
-    <div className="dashboard-page">
-      <header className="dashboard-header">
-        <div>
-          <h1>🛡️ FraudGuard</h1>
-          <p>AI SECURITY</p>
-        </div>
+    <div className="app-shell">
+      <Sidebar
+        activePage={activePage}
+        setActivePage={setActivePage}
+        onLogout={handleLogout}
+      />
 
-        <div className="header-right">
-          <span>Welcome, {userName}</span>
-
-          <button
-            className="logout-button"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
-        </div>
-      </header>
-
-      <main className="dashboard-container">
-        <section className="hero-section">
+      <main className="main-content">
+        <div className="topbar">
           <div>
-            <h2>Fraud Detection Dashboard</h2>
-            <p>
-              Analyze transactions using your machine learning
-              fraud detection model.
-            </p>
+            <span className="topbar-small">
+              SECURITY CENTER
+            </span>
+            <h2>
+              Welcome, {userName}
+            </h2>
+          </div>
+
+          <div className="topbar-status">
+            <span></span>
+            ML ENGINE ONLINE
+          </div>
+        </div>
+
+        <Hero
+          onAnalyze={scrollToAnalyze}
+          totalAnalyzed={totalAnalyzed}
+        />
+
+        <section className="metrics-grid">
+          <div className="metric-card">
+            <div className="metric-icon purple">
+              ◈
+            </div>
+            <div>
+              <small>
+                TOTAL ANALYZED
+              </small>
+              <strong>
+                {totalAnalyzed}
+              </strong>
+            </div>
+          </div>
+
+          <div className="metric-card">
+            <div className="metric-icon red">
+              !
+            </div>
+            <div>
+              <small>
+                FRAUD DETECTED
+              </small>
+              <strong>
+                {fraudCount}
+              </strong>
+            </div>
+          </div>
+
+          <div className="metric-card">
+            <div className="metric-icon green">
+              ✓
+            </div>
+            <div>
+              <small>
+                NORMAL
+              </small>
+              <strong>
+                {normalCount}
+              </strong>
+            </div>
+          </div>
+
+          <div className="metric-card">
+            <div className="metric-icon blue">
+              %
+            </div>
+            <div>
+              <small>
+                AVG RISK
+              </small>
+              <strong>
+                {averageRisk.toFixed(1)}%
+              </strong>
+            </div>
           </div>
         </section>
 
-        <section className="stats-grid">
-          <div className="stat-card">
-            <span className="stat-icon">📊</span>
-            <div>
-              <p>Total Analyzed</p>
-              <h3>{totalAnalyzed}</h3>
-            </div>
-          </div>
+        {activePage === "analyze" ||
+          activePage === "dashboard" ? (
+          <section
+            id="analyze-section"
+            className="analysis-layout"
+          >
+            <div className="analysis-panel">
+              <div className="section-title">
+                <div>
+                  <span>
+                    TRANSACTION ANALYSIS
+                  </span>
+                  <h2>
+                    Analyze a transaction
+                  </h2>
+                </div>
 
-          <div className="stat-card">
-            <span className="stat-icon">🚨</span>
-            <div>
-              <p>Fraud Detected</p>
-              <h3>{fraudCount}</h3>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <span className="stat-icon">✅</span>
-            <div>
-              <p>Normal</p>
-              <h3>{normalCount}</h3>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <span className="stat-icon">💰</span>
-            <div>
-              <p>Total Amount</p>
-              <h3>₹{totalAmount.toFixed(0)}</h3>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <span className="stat-icon">📈</span>
-            <div>
-              <p>Avg. Fraud Risk</p>
-              <h3>{averageRisk.toFixed(2)}%</h3>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <span className="stat-icon">🤖</span>
-            <div>
-              <p>Model</p>
-              <h3>ML</h3>
-            </div>
-          </div>
-        </section>
-
-        <section className="content-grid">
-          <div className="panel prediction-panel">
-            <div className="panel-header">
-              <h2>Analyze Transaction</h2>
-              <p>Enter transaction details below.</p>
-            </div>
-
-            {error && (
-              <div className="error-message">
-                {error}
+                <div className="secure-badge">
+                  ● SECURE
+                </div>
               </div>
-            )}
 
-            {result && (
-              <div
-                className={`prediction-result ${result.prediction === "FRAUD"
-                    ? "fraud-result"
-                    : "normal-result"
-                  }`}
+              {error && (
+                <div className="error-message">
+                  {error}
+                </div>
+              )}
+
+              {result && (
+                <div
+                  className={
+                    result.prediction ===
+                      "FRAUD"
+                      ? "result-box fraud-result"
+                      : "result-box normal-result"
+                  }
+                >
+                  <div className="result-big-icon">
+                    {result.prediction ===
+                      "FRAUD"
+                      ? "⚠"
+                      : "✓"}
+                  </div>
+
+                  <div>
+                    <small>
+                      MODEL PREDICTION
+                    </small>
+
+                    <h2>
+                      {result.prediction}
+                    </h2>
+
+                    <p>
+                      Fraud probability:{" "}
+                      <strong>
+                        {
+                          result.fraud_probability
+                        }
+                        %
+                      </strong>
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <form
+                className="analysis-form"
+                onSubmit={handlePredict}
               >
-                <div className="result-icon">
-                  {result.prediction === "FRAUD"
-                    ? "🚨"
-                    : "✅"}
+                <div className="input-group">
+                  <label>
+                    Transaction Amount
+                  </label>
+
+                  <div className="input-wrapper">
+                    <span>₹</span>
+                    <input
+                      type="number"
+                      name="amount"
+                      placeholder="10000"
+                      value={form.amount}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <p>Prediction</p>
-                  <h2>{result.prediction}</h2>
-                  <strong>
-                    Fraud Probability:{" "}
-                    {result.fraud_probability}%
-                  </strong>
-                </div>
-              </div>
-            )}
-
-            <form
-              className="transaction-form"
-              onSubmit={handlePredict}
-            >
-              <div className="form-row">
-                <div>
-                  <label>Amount (₹)</label>
-
-                  <input
-                    type="number"
-                    name="amount"
-                    placeholder="10000"
-                    value={form.amount}
-                    onChange={handleChange}
-                    min="0"
-                    step="0.01"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label>Transaction Hour</label>
+                <div className="input-group">
+                  <label>
+                    Transaction Hour
+                  </label>
 
                   <input
                     type="number"
                     name="transactionHour"
                     placeholder="14"
-                    value={form.transactionHour}
-                    onChange={handleChange}
                     min="0"
                     max="23"
+                    value={
+                      form.transactionHour
+                    }
+                    onChange={handleChange}
                     required
                   />
                 </div>
-              </div>
 
-              <div className="form-row">
-                <div>
-                  <label>Distance From Home (km)</label>
+                <div className="input-group">
+                  <label>
+                    Distance From Home
+                  </label>
 
                   <input
                     type="number"
                     name="distanceFromHome"
-                    placeholder="5"
-                    value={form.distanceFromHome}
-                    onChange={handleChange}
+                    placeholder="25"
                     min="0"
-                    step="0.1"
+                    value={
+                      form.distanceFromHome
+                    }
+                    onChange={handleChange}
                     required
                   />
                 </div>
 
-                <div>
-                  <label>Transactions Last 24h</label>
+                <div className="input-group">
+                  <label>
+                    Transactions / 24h
+                  </label>
 
                   <input
                     type="number"
                     name="transactionsLast24h"
-                    placeholder="3"
-                    value={form.transactionsLast24h}
-                    onChange={handleChange}
+                    placeholder="5"
                     min="0"
+                    value={
+                      form.transactionsLast24h
+                    }
+                    onChange={handleChange}
                     required
                   />
                 </div>
-              </div>
 
-              <div className="form-row">
-                <div>
-                  <label>Account Age (days)</label>
+                <div className="input-group">
+                  <label>
+                    Account Age
+                  </label>
 
                   <input
                     type="number"
                     name="accountAgeDays"
                     placeholder="365"
-                    value={form.accountAgeDays}
-                    onChange={handleChange}
                     min="0"
+                    value={
+                      form.accountAgeDays
+                    }
+                    onChange={handleChange}
                     required
                   />
                 </div>
 
-                <div>
-                  <label>Merchant Risk (%)</label>
+                <div className="input-group">
+                  <label>
+                    Merchant Risk %
+                  </label>
 
                   <input
                     type="number"
                     name="merchantRisk"
                     placeholder="50"
-                    value={form.merchantRisk}
-                    onChange={handleChange}
                     min="0"
                     max="100"
-                    step="0.1"
+                    value={
+                      form.merchantRisk
+                    }
+                    onChange={handleChange}
                     required
                   />
                 </div>
-              </div>
 
-              <div>
-                <label>Device Changed?</label>
+                <div className="input-group full-input">
+                  <label>
+                    Device Changed?
+                  </label>
 
-                <select
-                  name="deviceChange"
-                  value={form.deviceChange}
-                  onChange={handleChange}
-                >
-                  <option value="0">
-                    No
-                  </option>
-
-                  <option value="1">
-                    Yes
-                  </option>
-                </select>
-              </div>
-
-              <button
-                className="analyze-button"
-                type="submit"
-                disabled={loading}
-              >
-                {loading
-                  ? "Analyzing..."
-                  : "Analyze Transaction →"}
-              </button>
-            </form>
-          </div>
-
-          <div className="panel chart-panel">
-            <div className="panel-header">
-              <h2>Transaction Overview</h2>
-              <p>Fraud vs normal transactions.</p>
-            </div>
-
-            {transactions.length > 0 ? (
-              <ResponsiveContainer
-                width="100%"
-                height={320}
-              >
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label
+                  <select
+                    name="deviceChange"
+                    value={
+                      form.deviceChange
+                    }
+                    onChange={handleChange}
                   >
-                    {chartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                      />
-                    ))}
-                  </Pie>
+                    <option value="0">
+                      No
+                    </option>
 
-                  <Tooltip />
+                    <option value="1">
+                      Yes
+                    </option>
+                  </select>
+                </div>
 
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="empty-chart">
-                <div>📊</div>
-                <p>No transactions analyzed yet.</p>
+                <button
+                  className="analyze-submit"
+                  type="submit"
+                  disabled={loading}
+                >
+                  {loading
+                    ? "Analyzing..."
+                    : "Run AI Analysis →"}
+                </button>
+              </form>
+            </div>
+
+            <div className="overview-panel">
+              <div className="section-title">
+                <div>
+                  <span>
+                    SECURITY OVERVIEW
+                  </span>
+                  <h2>
+                    Detection status
+                  </h2>
+                </div>
               </div>
-            )}
-          </div>
-        </section>
 
-        <section className="panel history-panel">
-          <div className="panel-header">
-            <h2>Recent Transactions</h2>
-            <p>Your latest fraud analysis results.</p>
-          </div>
+              {transactions.length > 0 ? (
+                <ResponsiveContainer
+                  width="100%"
+                  height={300}
+                >
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={95}
+                      innerRadius={60}
+                      paddingAngle={4}
+                      label
+                    >
+                      {chartData.map(
+                        (_, index) => (
+                          <Cell
+                            key={index}
+                          />
+                        )
+                      )}
+                    </Pie>
 
-          {transactions.length === 0 ? (
-            <div className="empty-history">
-              No transactions available.
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="empty-overview">
+                  <div className="empty-shield">
+                    🛡️
+                  </div>
+
+                  <h3>
+                    Protection Ready
+                  </h3>
+
+                  <p>
+                    Run your first transaction
+                    analysis to see security
+                    statistics.
+                  </p>
+                </div>
+              )}
+
+              <div className="security-stats">
+                <div>
+                  <span>
+                    TOTAL VALUE
+                  </span>
+                  <strong>
+                    ₹
+                    {totalAmount.toFixed(
+                      0
+                    )}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    ENGINE
+                  </span>
+                  <strong>
+                    ONLINE
+                  </strong>
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Amount</th>
-                    <th>Hour</th>
-                    <th>Distance</th>
-                    <th>Merchant Risk</th>
-                    <th>Prediction</th>
-                    <th>Fraud Probability</th>
-                  </tr>
-                </thead>
+          </section>
+        ) : null}
 
-                <tbody>
-                  {transactions.map((transaction) => (
-                    <tr key={transaction.id}>
-                      <td>#{transaction.id}</td>
+        {activePage ===
+          "transactions" && (
+            <section className="transactions-panel">
+              <div className="section-title">
+                <div>
+                  <span>
+                    TRANSACTION MONITOR
+                  </span>
+                  <h2>
+                    Recent transactions
+                  </h2>
+                </div>
+              </div>
 
-                      <td>
-                        ₹
-                        {Number(
-                          transaction.amount || 0
-                        ).toFixed(2)}
-                      </td>
+              {transactions.length === 0 ? (
+                <div className="empty-overview">
+                  <div className="empty-shield">
+                    ◈
+                  </div>
+                  <h3>
+                    No transactions yet
+                  </h3>
+                  <p>
+                    Analyze a transaction to
+                    populate your history.
+                  </p>
+                </div>
+              ) : (
+                <div className="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Amount</th>
+                        <th>Hour</th>
+                        <th>Merchant Risk</th>
+                        <th>Prediction</th>
+                        <th>Probability</th>
+                      </tr>
+                    </thead>
 
-                      <td>
-                        {transaction.transaction_hour}
-                      </td>
+                    <tbody>
+                      {transactions.map(
+                        (transaction) => (
+                          <tr
+                            key={
+                              transaction.id
+                            }
+                          >
+                            <td>
+                              #
+                              {
+                                transaction.id
+                              }
+                            </td>
 
-                      <td>
-                        {transaction.distance_from_home} km
-                      </td>
+                            <td>
+                              ₹
+                              {Number(
+                                transaction.amount ||
+                                0
+                              ).toFixed(2)}
+                            </td>
 
-                      <td>
-                        {(
-                          Number(
-                            transaction.merchant_risk || 0
-                          ) * 100
-                        ).toFixed(1)}
-                        %
-                      </td>
+                            <td>
+                              {
+                                transaction.transaction_hour
+                              }
+                            </td>
 
-                      <td>
-                        <span
-                          className={
-                            transaction.prediction ===
-                              "FRAUD"
-                              ? "badge fraud-badge"
-                              : "badge normal-badge"
-                          }
-                        >
-                          {transaction.prediction}
-                        </span>
-                      </td>
+                            <td>
+                              {(
+                                Number(
+                                  transaction.merchant_risk ||
+                                  0
+                                ) * 100
+                              ).toFixed(1)}
+                              %
+                            </td>
 
-                      <td>
-                        {transaction.fraud_probability}%
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                            <td>
+                              <span
+                                className={
+                                  transaction.prediction ===
+                                    "FRAUD"
+                                    ? "badge fraud-badge"
+                                    : "badge normal-badge"
+                                }
+                              >
+                                {
+                                  transaction.prediction
+                                }
+                              </span>
+                            </td>
+
+                            <td>
+                              {
+                                transaction.fraud_probability
+                              }
+                              %
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           )}
-        </section>
+
+        <footer className="dashboard-footer">
+          <span>
+            FRAUDGUARD AI • MACHINE LEARNING
+            SECURITY
+          </span>
+
+          <span>
+            SYSTEM STATUS:{" "}
+            <b>OPERATIONAL</b>
+          </span>
+        </footer>
       </main>
     </div>
   );
@@ -894,7 +1266,8 @@ function Dashboard() {
 // ============================================================
 
 function App() {
-  const token = localStorage.getItem("token");
+  const token =
+    localStorage.getItem("token");
 
   return (
     <Routes>
@@ -902,9 +1275,15 @@ function App() {
         path="/"
         element={
           token ? (
-            <Navigate to="/dashboard" replace />
+            <Navigate
+              to="/dashboard"
+              replace
+            />
           ) : (
-            <Navigate to="/login" replace />
+            <Navigate
+              to="/login"
+              replace
+            />
           )
         }
       />
@@ -928,7 +1307,11 @@ function App() {
         path="*"
         element={
           <Navigate
-            to={token ? "/dashboard" : "/login"}
+            to={
+              token
+                ? "/dashboard"
+                : "/login"
+            }
             replace
           />
         }
@@ -936,10 +1319,6 @@ function App() {
     </Routes>
   );
 }
-
-// ============================================================
-// EXPORT
-// ============================================================
 
 export default function RootApp() {
   return (
