@@ -1,15 +1,9 @@
 from fastapi import FastAPI, HTTPException
-
 from fastapi.middleware.cors import CORSMiddleware
-
 from pydantic import BaseModel
-
 import sqlite3
-
 import joblib
-
 import numpy as np
-
 from auth import router as auth_router
 
 
@@ -32,6 +26,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "https://fraudguard-ai-frontend.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -219,8 +214,8 @@ def predict(data: TransactionRequest):
     # CREATE 7 FEATURES
     # --------------------------------------------------------
 
-    features = np.array([
-        [
+    features = np.array(
+        [[
             data.amount,
             data.transaction_hour,
             data.distance_from_home,
@@ -228,8 +223,8 @@ def predict(data: TransactionRequest):
             data.account_age_days,
             data.merchant_risk,
             data.device_change
-        ]
-    ])
+        ]]
+    )
 
     # --------------------------------------------------------
     # SCALE FEATURES
@@ -272,7 +267,6 @@ def predict(data: TransactionRequest):
 
     try:
         probabilities = model.predict_proba(features_scaled)[0]
-
         classes = list(model.classes_)
 
         if 1 in classes:
@@ -386,7 +380,6 @@ def get_transactions():
     transactions = []
 
     for row in rows:
-
         transactions.append({
             "id": row["id"],
             "amount": row["amount"],

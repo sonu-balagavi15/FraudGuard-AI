@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+
 import {
   BrowserRouter,
   Routes,
@@ -65,7 +66,7 @@ function Login() {
         "user",
         JSON.stringify({
           email,
-          name: email.split("@")[0],
+          name: data.name || email.split("@")[0],
         })
       );
 
@@ -94,7 +95,9 @@ function Login() {
 
         <div className="auth-heading">
           <p className="eyebrow">SECURE ACCESS</p>
+
           <h2>Welcome back</h2>
+
           <p>Sign in to your fraud detection dashboard.</p>
         </div>
 
@@ -128,7 +131,9 @@ function Login() {
 
         <p className="auth-switch">
           Don't have an account?{" "}
-          <button onClick={() => navigate("/register")}>Create account</button>
+          <button onClick={() => navigate("/register")}>
+            Create account
+          </button>
         </p>
       </div>
     </div>
@@ -142,8 +147,10 @@ function Login() {
 function Register() {
   const navigate = useNavigate();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -162,6 +169,7 @@ function Register() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          name,
           email,
           password,
         }),
@@ -170,14 +178,18 @@ function Register() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Registration failed");
+        throw new Error(
+          Array.isArray(data.detail)
+            ? data.detail.map((item) => item.msg).join(", ")
+            : data.detail || "Registration failed"
+        );
       }
 
       setSuccess("Account created successfully.");
 
       setTimeout(() => {
         navigate("/");
-      }, 1000);
+      }, 1200);
     } catch (err) {
       setError(err.message || "Registration failed");
     } finally {
@@ -202,11 +214,23 @@ function Register() {
 
         <div className="auth-heading">
           <p className="eyebrow">GET STARTED</p>
+
           <h2>Create account</h2>
+
           <p>Start monitoring suspicious transactions.</p>
         </div>
 
         <form onSubmit={handleRegister}>
+          <label>Full Name</label>
+
+          <input
+            type="text"
+            placeholder="Enter your name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+
           <label>Email</label>
 
           <input
@@ -269,11 +293,8 @@ function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
-
   const [error, setError] = useState("");
-
   const [result, setResult] = useState(null);
-
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
 
@@ -311,7 +332,9 @@ function Dashboard() {
 
       const data = await response.json();
 
-      setTransactions(Array.isArray(data) ? data : data.transactions || []);
+      setTransactions(
+        Array.isArray(data) ? data : data.transactions || []
+      );
     } catch (err) {
       console.error(err);
     } finally {
@@ -350,22 +373,38 @@ function Dashboard() {
     try {
       const token = localStorage.getItem("token");
 
+      const merchantRiskPercent = Number(form.merchantRisk);
+
+      if (
+        Number.isNaN(merchantRiskPercent) ||
+        merchantRiskPercent < 0 ||
+        merchantRiskPercent > 100
+      ) {
+        throw new Error("Merchant Risk must be between 0 and 100.");
+      }
+
       const payload = {
         amount: Number(form.amount),
         transaction_hour: Number(form.transactionHour),
         distance_from_home: Number(form.distanceFromHome),
         transactions_last_24h: Number(form.transactionsLast24h),
         account_age_days: Number(form.accountAgeDays),
-        merchant_risk: Number(form.merchantRisk),
+
+        // Frontend uses 0-100%
+        // Backend expects 0-1
+        merchant_risk: merchantRiskPercent / 100,
+
         device_change: Number(form.deviceChange),
       };
 
       const response = await fetch(`${API_URL}/predict`, {
         method: "POST",
+
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
+
         body: JSON.stringify(payload),
       });
 
@@ -415,7 +454,8 @@ function Dashboard() {
 
     const fraud = transactions.filter(
       (item) =>
-        String(item.prediction || item.result || "").toUpperCase() === "FRAUD"
+        String(item.prediction || item.result || "").toUpperCase() ===
+        "FRAUD"
     ).length;
 
     const normal = total - fraud;
@@ -429,7 +469,10 @@ function Dashboard() {
       total > 0
         ? transactions.reduce(
           (sum, item) =>
-            sum + Number(item.fraud_probability || item.probability || 0),
+            sum +
+            Number(
+              item.fraud_probability || item.probability || 0
+            ),
           0
         ) / total
         : 0;
@@ -567,28 +610,41 @@ function Dashboard() {
         <div className="sidebar-bottom">
 
           <div className="security-mini">
+
             <div className="mini-icon">✦</div>
 
             <div>
               <strong>AI Protection Active</strong>
-              <p>Your transaction monitoring system is active.</p>
+
+              <p>
+                Your transaction monitoring system is active.
+              </p>
             </div>
+
           </div>
 
           <div className="user-mini">
+
             <div className="avatar">
               {(user.name || "S").charAt(0).toUpperCase()}
             </div>
 
             <div className="user-details">
+
               <strong>{user.name || "sonu"}</strong>
-              <span>{user.email || "sonu@gmail.com"}</span>
+
+              <span>
+                {user.email || "sonu@gmail.com"}
+              </span>
+
             </div>
 
             <button onClick={logout}>↪</button>
+
           </div>
 
         </div>
+
       </aside>
 
       {/* ======================================================
@@ -598,16 +654,20 @@ function Dashboard() {
       <main className="main-content">
 
         <div className="top-mobile">
+
           <div className="sidebar-brand">
+
             <div className="brand-shield">🛡️</div>
 
             <div>
               <h2>FraudGuard</h2>
               <span>AI SECURITY</span>
             </div>
+
           </div>
 
           <button onClick={logout}>↪</button>
+
         </div>
 
         {/* HERO */}
@@ -676,9 +736,7 @@ function Dashboard() {
 
         </section>
 
-        {/* ====================================================
-            STATS
-        ==================================================== */}
+        {/* STATS */}
 
         <section className="stats-grid">
 
@@ -693,9 +751,12 @@ function Dashboard() {
             <div className="stat-icon red">⚠</div>
             <span>FRAUD DETECTED</span>
             <strong>{stats.fraud}</strong>
+
             <small>
               {stats.total
-                ? `${((stats.fraud / stats.total) * 100).toFixed(1)}% detection rate`
+                ? `${((stats.fraud / stats.total) * 100).toFixed(
+                  1
+                )}% detection rate`
                 : "0% detection rate"}
             </small>
           </div>
@@ -717,23 +778,24 @@ function Dashboard() {
           <div className="stat-card">
             <div className="stat-icon blue">₹</div>
             <span>TOTAL AMOUNT</span>
+
             <strong>
               ₹{stats.totalAmount.toLocaleString("en-IN")}
             </strong>
+
             <small>Analyzed value</small>
           </div>
 
         </section>
 
-        {/* ====================================================
-            CHARTS
-        ==================================================== */}
+        {/* CHARTS */}
 
         <section className="charts-grid">
 
           <div className="chart-card">
 
             <div className="chart-header">
+
               <div>
                 <p className="eyebrow">SECURITY ANALYTICS</p>
                 <h2>Risk Trend</h2>
@@ -742,19 +804,25 @@ function Dashboard() {
               <span className="chart-live">
                 ● LIVE
               </span>
+
             </div>
 
             {riskChartData.length === 0 ? (
+
               <div className="empty-chart">
                 Analyze transactions to generate risk analytics.
               </div>
+
             ) : (
+
               <div className="chart-container">
 
                 <ResponsiveContainer width="100%" height={260}>
+
                   <AreaChart data={riskChartData}>
 
                     <defs>
+
                       <linearGradient
                         id="riskGradient"
                         x1="0"
@@ -762,6 +830,7 @@ function Dashboard() {
                         x2="0"
                         y2="1"
                       >
+
                         <stop
                           offset="0%"
                           stopColor="#8b5cf6"
@@ -773,7 +842,9 @@ function Dashboard() {
                           stopColor="#8b5cf6"
                           stopOpacity={0}
                         />
+
                       </linearGradient>
+
                     </defs>
 
                     <CartesianGrid
@@ -802,6 +873,7 @@ function Dashboard() {
                     />
 
                   </AreaChart>
+
                 </ResponsiveContainer>
 
               </div>
@@ -812,6 +884,7 @@ function Dashboard() {
           <div className="chart-card">
 
             <div className="chart-header">
+
               <div>
                 <p className="eyebrow">TRANSACTION ANALYTICS</p>
                 <h2>Transaction Amount</h2>
@@ -820,16 +893,21 @@ function Dashboard() {
               <span className="chart-live">
                 ₹ VALUE
               </span>
+
             </div>
 
             {amountChartData.length === 0 ? (
+
               <div className="empty-chart">
                 Analyze transactions to generate amount analytics.
               </div>
+
             ) : (
+
               <div className="chart-container">
 
                 <ResponsiveContainer width="100%" height={260}>
+
                   <BarChart data={amountChartData}>
 
                     <CartesianGrid
@@ -855,6 +933,7 @@ function Dashboard() {
                     />
 
                   </BarChart>
+
                 </ResponsiveContainer>
 
               </div>
@@ -864,9 +943,7 @@ function Dashboard() {
 
         </section>
 
-        {/* ====================================================
-            ANALYZER
-        ==================================================== */}
+        {/* ANALYZER */}
 
         <section
           className="workspace-grid"
@@ -882,12 +959,16 @@ function Dashboard() {
               </div>
 
               <div>
+
                 <p className="eyebrow">AI ENGINE</p>
+
                 <h2>Analyze Transaction</h2>
+
                 <p>
                   Enter transaction details to calculate fraud
                   probability.
                 </p>
+
               </div>
 
               <div className="online-badge">
@@ -905,9 +986,11 @@ function Dashboard() {
               <div className="form-grid">
 
                 <div className="field">
+
                   <label>Transaction Amount</label>
 
                   <div className="input-wrap">
+
                     <span>₹</span>
 
                     <input
@@ -918,13 +1001,17 @@ function Dashboard() {
                       onChange={handleChange}
                       required
                     />
+
                   </div>
+
                 </div>
 
                 <div className="field">
+
                   <label>Transaction Hour</label>
 
                   <div className="input-wrap">
+
                     <span>◷</span>
 
                     <input
@@ -937,13 +1024,17 @@ function Dashboard() {
                       onChange={handleChange}
                       required
                     />
+
                   </div>
+
                 </div>
 
                 <div className="field">
+
                   <label>Distance From Home</label>
 
                   <div className="input-wrap">
+
                     <span>⌖</span>
 
                     <input
@@ -956,13 +1047,17 @@ function Dashboard() {
                     />
 
                     <small>KM</small>
+
                   </div>
+
                 </div>
 
                 <div className="field">
+
                   <label>Transactions Last 24 Hours</label>
 
                   <div className="input-wrap">
+
                     <span>↻</span>
 
                     <input
@@ -973,13 +1068,17 @@ function Dashboard() {
                       onChange={handleChange}
                       required
                     />
+
                   </div>
+
                 </div>
 
                 <div className="field">
+
                   <label>Account Age</label>
 
                   <div className="input-wrap">
+
                     <span>◫</span>
 
                     <input
@@ -992,13 +1091,17 @@ function Dashboard() {
                     />
 
                     <small>DAYS</small>
+
                   </div>
+
                 </div>
 
                 <div className="field">
-                  <label>Merchant Risk</label>
+
+                  <label>Merchant Risk (%)</label>
 
                   <div className="input-wrap">
+
                     <span>◆</span>
 
                     <input
@@ -1006,12 +1109,17 @@ function Dashboard() {
                       name="merchantRisk"
                       min="0"
                       max="100"
+                      step="0.1"
                       placeholder="20"
                       value={form.merchantRisk}
                       onChange={handleChange}
                       required
                     />
+
+                    <small>%</small>
+
                   </div>
+
                 </div>
 
               </div>
@@ -1019,10 +1127,13 @@ function Dashboard() {
               <div className="device-field">
 
                 <div>
+
                   <label>Device Changed?</label>
+
                   <p>
                     Was this transaction made from a new device?
                   </p>
+
                 </div>
 
                 <div className="toggle-group">
@@ -1084,22 +1195,25 @@ function Dashboard() {
 
           </div>
 
-          {/* ==================================================
-              RESULT
-          ================================================== */}
+          {/* RESULT */}
 
           <div className="prediction-card">
 
             <div className="prediction-header">
+
               <div>
                 <p className="eyebrow">AI PREDICTION</p>
                 <h2>Risk Assessment</h2>
               </div>
 
-              <div className="ml-badge">ML</div>
+              <div className="ml-badge">
+                ML
+              </div>
+
             </div>
 
             {!result ? (
+
               <div className="ready-state">
 
                 <div className="ready-icon">
@@ -1118,7 +1232,9 @@ function Dashboard() {
                 </div>
 
               </div>
+
             ) : (
+
               <div className="result-state">
 
                 <div
@@ -1138,7 +1254,9 @@ function Dashboard() {
                       : "result-status safe-text"
                   }
                 >
-                  {String(result.prediction || "").toUpperCase()}
+                  {String(
+                    result.prediction || ""
+                  ).toUpperCase()}
                 </div>
 
                 <div className="risk-number">
@@ -1148,6 +1266,7 @@ function Dashboard() {
                 <p>Fraud Probability</p>
 
                 <div className="risk-bar">
+
                   <div
                     className={
                       isFraud
@@ -1161,6 +1280,7 @@ function Dashboard() {
                       )}%`,
                     }}
                   ></div>
+
                 </div>
 
                 <div className="risk-labels">
@@ -1175,9 +1295,7 @@ function Dashboard() {
 
         </section>
 
-        {/* ====================================================
-            HISTORY
-        ==================================================== */}
+        {/* HISTORY */}
 
         <section
           className="history-card"
@@ -1187,6 +1305,7 @@ function Dashboard() {
           <div className="history-header">
 
             <div>
+
               <p className="eyebrow">ACTIVITY</p>
 
               <h2>Transaction History</h2>
@@ -1194,6 +1313,7 @@ function Dashboard() {
               <p>
                 Recently analyzed transactions.
               </p>
+
             </div>
 
             <button
@@ -1210,21 +1330,33 @@ function Dashboard() {
             <div className="filter-tabs">
 
               <button
-                className={filter === "ALL" ? "selected" : ""}
+                className={
+                  filter === "ALL"
+                    ? "selected"
+                    : ""
+                }
                 onClick={() => setFilter("ALL")}
               >
                 All
               </button>
 
               <button
-                className={filter === "FRAUD" ? "selected" : ""}
+                className={
+                  filter === "FRAUD"
+                    ? "selected"
+                    : ""
+                }
                 onClick={() => setFilter("FRAUD")}
               >
                 Fraud
               </button>
 
               <button
-                className={filter === "NORMAL" ? "selected" : ""}
+                className={
+                  filter === "NORMAL"
+                    ? "selected"
+                    : ""
+                }
                 onClick={() => setFilter("NORMAL")}
               >
                 Normal
@@ -1233,21 +1365,29 @@ function Dashboard() {
             </div>
 
             <div className="search-box">
+
               ⌕
+
               <input
                 placeholder="Search transactions..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) =>
+                  setSearch(e.target.value)
+                }
               />
+
             </div>
 
           </div>
 
           {loadingTransactions ? (
+
             <div className="empty-history">
               Loading transactions...
             </div>
+
           ) : filteredTransactions.length === 0 ? (
+
             <div className="empty-history">
 
               <div className="empty-icon">
@@ -1261,12 +1401,15 @@ function Dashboard() {
               </p>
 
             </div>
+
           ) : (
+
             <div className="table-wrapper">
 
               <table>
 
                 <thead>
+
                   <tr>
                     <th>ID</th>
                     <th>Amount</th>
@@ -1274,80 +1417,109 @@ function Dashboard() {
                     <th>Fraud Probability</th>
                     <th>Status</th>
                   </tr>
+
                 </thead>
 
                 <tbody>
 
-                  {filteredTransactions.map((item, index) => {
+                  {filteredTransactions.map(
+                    (item, index) => {
 
-                    const prediction = String(
-                      item.prediction || item.result || "NORMAL"
-                    ).toUpperCase();
+                      const prediction = String(
+                        item.prediction ||
+                        item.result ||
+                        "NORMAL"
+                      ).toUpperCase();
 
-                    const probability = Number(
-                      item.fraud_probability ||
-                      item.probability ||
-                      0
-                    );
+                      const probability = Number(
+                        item.fraud_probability ||
+                        item.probability ||
+                        0
+                      );
 
-                    const fraud = prediction === "FRAUD";
+                      const fraud =
+                        prediction === "FRAUD";
 
-                    return (
-                      <tr key={item.id || index}>
+                      return (
+                        <tr
+                          key={
+                            item.id ||
+                            index
+                          }
+                        >
 
-                        <td>
-                          #{item.id || index + 1}
-                        </td>
+                          <td>
+                            #{item.id || index + 1}
+                          </td>
 
-                        <td>
-                          ₹
-                          {Number(
-                            item.amount || 0
-                          ).toLocaleString("en-IN")}
-                        </td>
+                          <td>
+                            ₹
+                            {Number(
+                              item.amount || 0
+                            ).toLocaleString(
+                              "en-IN"
+                            )}
+                          </td>
 
-                        <td>
-                          <span
-                            className={
-                              fraud
-                                ? "prediction-pill fraud-pill"
-                                : "prediction-pill normal-pill"
-                            }
-                          >
-                            {fraud ? "⚠ FRAUD" : "✓ NORMAL"}
-                          </span>
-                        </td>
+                          <td>
 
-                        <td>
-                          <div className="probability-cell">
-
-                            <span>
-                              {probability.toFixed(1)}%
+                            <span
+                              className={
+                                fraud
+                                  ? "prediction-pill fraud-pill"
+                                  : "prediction-pill normal-pill"
+                              }
+                            >
+                              {fraud
+                                ? "⚠ FRAUD"
+                                : "✓ NORMAL"}
                             </span>
 
-                            <div className="mini-bar">
-                              <div
-                                style={{
-                                  width: `${Math.min(
-                                    100,
-                                    Math.max(0, probability)
-                                  )}%`,
-                                }}
-                              ></div>
+                          </td>
+
+                          <td>
+
+                            <div className="probability-cell">
+
+                              <span>
+                                {probability.toFixed(
+                                  1
+                                )}
+                                %
+                              </span>
+
+                              <div className="mini-bar">
+
+                                <div
+                                  style={{
+                                    width: `${Math.min(
+                                      100,
+                                      Math.max(
+                                        0,
+                                        probability
+                                      )
+                                    )}%`,
+                                  }}
+                                ></div>
+
+                              </div>
+
                             </div>
 
-                          </div>
-                        </td>
+                          </td>
 
-                        <td>
-                          <span className="status-text">
-                            ● Analyzed
-                          </span>
-                        </td>
+                          <td>
 
-                      </tr>
-                    );
-                  })}
+                            <span className="status-text">
+                              ● Analyzed
+                            </span>
+
+                          </td>
+
+                        </tr>
+                      );
+                    }
+                  )}
 
                 </tbody>
 
@@ -1361,6 +1533,7 @@ function Dashboard() {
         {/* FOOTER */}
 
         <footer className="footer">
+
           <span>
             🛡️ <strong>FraudGuard AI</strong>
           </span>
@@ -1372,6 +1545,7 @@ function Dashboard() {
           <span>
             © 2026
           </span>
+
         </footer>
 
       </main>
@@ -1386,6 +1560,7 @@ function Dashboard() {
 function App() {
   return (
     <BrowserRouter>
+
       <Routes>
 
         <Route
@@ -1413,6 +1588,7 @@ function App() {
         />
 
       </Routes>
+
     </BrowserRouter>
   );
 }
