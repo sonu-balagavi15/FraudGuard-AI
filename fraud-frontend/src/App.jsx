@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-
+import { useEffect, useState } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -7,22 +6,45 @@ import {
   Navigate,
   useNavigate,
 } from "react-router-dom";
-
 import {
   ResponsiveContainer,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
   Tooltip,
+  Legend,
 } from "recharts";
-
 import "./App.css";
 
 const API_URL = "https://fraudguard-ai-te8y.onrender.com";
+
+// ============================================================
+// HELPER
+// ============================================================
+
+function getErrorMessage(data, fallback = "Something went wrong.") {
+  if (!data) return fallback;
+
+  if (typeof data.detail === "string") {
+    return data.detail;
+  }
+
+  if (Array.isArray(data.detail)) {
+    return data.detail
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item?.msg) return item.msg;
+        return JSON.stringify(item);
+      })
+      .join(", ");
+  }
+
+  if (typeof data.message === "string") {
+    return data.message;
+  }
+
+  return fallback;
+}
 
 // ============================================================
 // LOGIN
@@ -49,7 +71,7 @@ function Login() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email,
+          email: email.trim(),
           password,
         }),
       });
@@ -57,22 +79,32 @@ function Login() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Login failed");
+        throw new Error(
+          getErrorMessage(data, "Invalid email or password.")
+        );
+      }
+
+      if (!data.access_token) {
+        throw new Error("Login successful, but access token was not received.");
       }
 
       localStorage.setItem("token", data.access_token);
 
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          email,
-          name: data.name || email.split("@")[0],
-        })
-      );
+      const userName =
+        data.name ||
+        data.user?.name ||
+        email.split("@")[0];
+
+      localStorage.setItem("userName", userName);
 
       navigate("/dashboard");
-    } catch (err) {
-      setError(err.message || "Unable to connect to server");
+    } catch (error) {
+      console.error("Login error:", error);
+      setError(
+        typeof error?.message === "string"
+          ? error.message
+          : "Login failed."
+      );
     } finally {
       setLoading(false);
     }
@@ -80,33 +112,25 @@ function Login() {
 
   return (
     <div className="auth-page">
-      <div className="auth-glow glow-one"></div>
-      <div className="auth-glow glow-two"></div>
-
       <div className="auth-card">
-        <div className="brand-center">
-          <div className="brand-shield">🛡️</div>
+        <div className="brand-icon">🛡️</div>
 
-          <div>
-            <h1>FraudGuard</h1>
-            <span>AI SECURITY</span>
-          </div>
-        </div>
+        <h1>FraudGuard</h1>
+        <p className="brand-subtitle">AI SECURITY</p>
 
         <div className="auth-heading">
-          <p className="eyebrow">SECURE ACCESS</p>
-
           <h2>Welcome back</h2>
-
-          <p>Sign in to your fraud detection dashboard.</p>
+          <p>Sign in to monitor suspicious transactions.</p>
         </div>
+
+        {error && <div className="error-message">{error}</div>}
 
         <form onSubmit={handleLogin}>
           <label>Email</label>
 
           <input
             type="email"
-            placeholder="you@example.com"
+            placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -122,16 +146,18 @@ function Login() {
             required
           />
 
-          {error && <div className="error-box">{error}</div>}
-
-          <button className="primary-button" disabled={loading}>
+          <button type="submit" disabled={loading}>
             {loading ? "Signing in..." : "Sign In →"}
           </button>
         </form>
 
-        <p className="auth-switch">
+        <p className="switch-auth">
           Don't have an account?{" "}
-          <button onClick={() => navigate("/register")}>
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => navigate("/register")}
+          >
             Create account
           </button>
         </p>
@@ -169,29 +195,40 @@ function Register() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name,
-          email,
+          name: name.trim(),
+          email: email.trim(),
           password,
         }),
       });
 
       const data = await response.json();
 
+      console.log("Registration response:", data);
+
       if (!response.ok) {
         throw new Error(
-          Array.isArray(data.detail)
-            ? data.detail.map((item) => item.msg).join(", ")
-            : data.detail || "Registration failed"
+          getErrorMessage(data, "Registration failed.")
         );
       }
 
-      setSuccess("Account created successfully.");
+      setSuccess("Account created successfully!");
 
       setTimeout(() => {
-        navigate("/");
-      }, 1200);
-    } catch (err) {
-      setError(err.message || "Registration failed");
+        navigate("/login");
+      }, 1000);
+    } catch (error) {
+      console.error("Registration error:", error);
+
+      let message = "Registration failed.";
+
+      if (error?.message) {
+        message =
+          typeof error.message === "string"
+            ? error.message
+            : JSON.stringify(error.message);
+      }
+
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -199,33 +236,35 @@ function Register() {
 
   return (
     <div className="auth-page">
-      <div className="auth-glow glow-one"></div>
-      <div className="auth-glow glow-two"></div>
-
       <div className="auth-card">
-        <div className="brand-center">
-          <div className="brand-shield">🛡️</div>
+        <div className="brand-icon">🛡️</div>
 
-          <div>
-            <h1>FraudGuard</h1>
-            <span>AI SECURITY</span>
-          </div>
-        </div>
+        <h1>FraudGuard</h1>
+        <p className="brand-subtitle">AI SECURITY</p>
 
         <div className="auth-heading">
-          <p className="eyebrow">GET STARTED</p>
-
           <h2>Create account</h2>
-
           <p>Start monitoring suspicious transactions.</p>
         </div>
+
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="success-message">
+            {success}
+          </div>
+        )}
 
         <form onSubmit={handleRegister}>
           <label>Full Name</label>
 
           <input
             type="text"
-            placeholder="Enter your name"
+            placeholder="Enter your full name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -235,7 +274,7 @@ function Register() {
 
           <input
             type="email"
-            placeholder="you@example.com"
+            placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -249,38 +288,27 @@ function Register() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            minLength={6}
           />
 
-          {error && <div className="error-box">{error}</div>}
-
-          {success && <div className="success-box">{success}</div>}
-
-          <button className="primary-button" disabled={loading}>
-            {loading ? "Creating..." : "Create Account →"}
+          <button type="submit" disabled={loading}>
+            {loading ? "Creating account..." : "Create Account →"}
           </button>
         </form>
 
-        <p className="auth-switch">
+        <p className="switch-auth">
           Already have an account?{" "}
-          <button onClick={() => navigate("/")}>Sign in</button>
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => navigate("/login")}
+          >
+            Sign in
+          </button>
         </p>
       </div>
     </div>
   );
-}
-
-// ============================================================
-// PROTECTED ROUTE
-// ============================================================
-
-function ProtectedRoute({ children }) {
-  const token = localStorage.getItem("token");
-
-  if (!token) {
-    return <Navigate to="/" replace />;
-  }
-
-  return children;
 }
 
 // ============================================================
@@ -290,15 +318,9 @@ function ProtectedRoute({ children }) {
 function Dashboard() {
   const navigate = useNavigate();
 
-  const [transactions, setTransactions] = useState([]);
-  const [loadingTransactions, setLoadingTransactions] = useState(true);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [error, setError] = useState("");
-  const [result, setResult] = useState(null);
-  const [filter, setFilter] = useState("ALL");
-  const [search, setSearch] = useState("");
-
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const [userName, setUserName] = useState(
+    localStorage.getItem("userName") || "User"
+  );
 
   const [form, setForm] = useState({
     amount: "",
@@ -310,45 +332,37 @@ function Dashboard() {
     deviceChange: "0",
   });
 
-  // ----------------------------------------------------------
-  // LOAD TRANSACTIONS
-  // ----------------------------------------------------------
+  const [result, setResult] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const loadTransactions = async () => {
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    fetchTransactions();
+  }, []);
+
+  const fetchTransactions = async () => {
     try {
-      setLoadingTransactions(true);
-
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(`${API_URL}/transactions`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(`${API_URL}/transactions`);
 
       if (!response.ok) {
-        throw new Error("Unable to load transactions");
+        return;
       }
 
       const data = await response.json();
 
-      setTransactions(
-        Array.isArray(data) ? data : data.transactions || []
-      );
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingTransactions(false);
+      setTransactions(data.transactions || []);
+    } catch (error) {
+      console.error("History error:", error);
     }
   };
-
-  useEffect(() => {
-    loadTransactions();
-  }, []);
-
-  // ----------------------------------------------------------
-  // FORM CHANGE
-  // ----------------------------------------------------------
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -359,1195 +373,517 @@ function Dashboard() {
     }));
   };
 
-  // ----------------------------------------------------------
-  // ANALYZE
-  // ----------------------------------------------------------
-
-  const analyzeTransaction = async (e) => {
+  const handlePredict = async (e) => {
     e.preventDefault();
 
     setError("");
     setResult(null);
-    setAnalyzing(true);
+    setLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
-
+      const amount = Number(form.amount);
+      const transactionHour = Number(form.transactionHour);
+      const distanceFromHome = Number(form.distanceFromHome);
+      const transactionsLast24h = Number(form.transactionsLast24h);
+      const accountAgeDays = Number(form.accountAgeDays);
       const merchantRiskPercent = Number(form.merchantRisk);
+      const deviceChange = Number(form.deviceChange);
+
+      if (Number.isNaN(amount) || amount < 0) {
+        throw new Error("Amount must be 0 or greater.");
+      }
+
+      if (
+        Number.isNaN(transactionHour) ||
+        transactionHour < 0 ||
+        transactionHour > 23
+      ) {
+        throw new Error("Transaction hour must be between 0 and 23.");
+      }
+
+      if (
+        Number.isNaN(distanceFromHome) ||
+        distanceFromHome < 0
+      ) {
+        throw new Error("Distance from home must be 0 or greater.");
+      }
+
+      if (
+        Number.isNaN(transactionsLast24h) ||
+        transactionsLast24h < 0
+      ) {
+        throw new Error(
+          "Transactions in last 24 hours must be 0 or greater."
+        );
+      }
+
+      if (
+        Number.isNaN(accountAgeDays) ||
+        accountAgeDays < 0
+      ) {
+        throw new Error("Account age must be 0 or greater.");
+      }
 
       if (
         Number.isNaN(merchantRiskPercent) ||
         merchantRiskPercent < 0 ||
         merchantRiskPercent > 100
       ) {
-        throw new Error("Merchant Risk must be between 0 and 100.");
+        throw new Error(
+          "Merchant Risk must be between 0 and 100."
+        );
       }
 
-      const payload = {
-        amount: Number(form.amount),
-        transaction_hour: Number(form.transactionHour),
-        distance_from_home: Number(form.distanceFromHome),
-        transactions_last_24h: Number(form.transactionsLast24h),
-        account_age_days: Number(form.accountAgeDays),
-
-        // Frontend uses 0-100%
-        // Backend expects 0-1
-        merchant_risk: merchantRiskPercent / 100,
-
-        device_change: Number(form.deviceChange),
-      };
+      const merchantRisk = merchantRiskPercent / 100;
 
       const response = await fetch(`${API_URL}/predict`, {
         method: "POST",
-
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
-
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          amount,
+          transaction_hour: transactionHour,
+          distance_from_home: distanceFromHome,
+          transactions_last_24h: transactionsLast24h,
+          account_age_days: accountAgeDays,
+          merchant_risk: merchantRisk,
+          device_change: deviceChange,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Prediction failed");
+        throw new Error(
+          getErrorMessage(data, "Prediction failed.")
+        );
       }
 
       setResult(data);
 
-      setForm({
-        amount: "",
-        transactionHour: "",
-        distanceFromHome: "",
-        transactionsLast24h: "",
-        accountAgeDays: "",
-        merchantRisk: "",
-        deviceChange: "0",
-      });
+      await fetchTransactions();
+    } catch (error) {
+      console.error("Prediction error:", error);
 
-      await loadTransactions();
-    } catch (err) {
-      setError(err.message || "Failed to fetch");
+      setError(
+        typeof error?.message === "string"
+          ? error.message
+          : "Prediction failed."
+      );
     } finally {
-      setAnalyzing(false);
+      setLoading(false);
     }
   };
 
-  // ----------------------------------------------------------
-  // LOGOUT
-  // ----------------------------------------------------------
-
-  const logout = () => {
+  const handleLogout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    localStorage.removeItem("userName");
 
-    navigate("/");
+    navigate("/login");
   };
 
-  // ----------------------------------------------------------
-  // STATISTICS
-  // ----------------------------------------------------------
+  const totalAnalyzed = transactions.length;
 
-  const stats = useMemo(() => {
-    const total = transactions.length;
+  const fraudCount = transactions.filter(
+    (item) => item.prediction === "FRAUD"
+  ).length;
 
-    const fraud = transactions.filter(
-      (item) =>
-        String(item.prediction || item.result || "").toUpperCase() ===
-        "FRAUD"
-    ).length;
+  const normalCount = transactions.filter(
+    (item) => item.prediction === "NORMAL"
+  ).length;
 
-    const normal = total - fraud;
+  const totalAmount = transactions.reduce(
+    (sum, item) => sum + Number(item.amount || 0),
+    0
+  );
 
-    const totalAmount = transactions.reduce(
-      (sum, item) => sum + Number(item.amount || 0),
-      0
-    );
+  const averageRisk =
+    transactions.length > 0
+      ? transactions.reduce(
+        (sum, item) =>
+          sum + Number(item.fraud_probability || 0),
+        0
+      ) / transactions.length
+      : 0;
 
-    const averageRisk =
-      total > 0
-        ? transactions.reduce(
-          (sum, item) =>
-            sum +
-            Number(
-              item.fraud_probability || item.probability || 0
-            ),
-          0
-        ) / total
-        : 0;
-
-    return {
-      total,
-      fraud,
-      normal,
-      totalAmount,
-      averageRisk,
-    };
-  }, [transactions]);
-
-  // ----------------------------------------------------------
-  // FILTER
-  // ----------------------------------------------------------
-
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter((item) => {
-      const prediction = String(
-        item.prediction || item.result || ""
-      ).toUpperCase();
-
-      const matchesFilter =
-        filter === "ALL" ||
-        (filter === "FRAUD" && prediction === "FRAUD") ||
-        (filter === "NORMAL" && prediction === "NORMAL");
-
-      const text = JSON.stringify(item).toLowerCase();
-
-      const matchesSearch = text.includes(search.toLowerCase());
-
-      return matchesFilter && matchesSearch;
-    });
-  }, [transactions, filter, search]);
-
-  // ----------------------------------------------------------
-  // CHART DATA
-  // ----------------------------------------------------------
-
-  const riskChartData = useMemo(() => {
-    return transactions
-      .slice()
-      .reverse()
-      .slice(-10)
-      .map((item, index) => ({
-        name: `#${index + 1}`,
-        risk: Number(
-          item.fraud_probability || item.probability || 0
-        ),
-      }));
-  }, [transactions]);
-
-  const amountChartData = useMemo(() => {
-    return transactions
-      .slice()
-      .reverse()
-      .slice(-10)
-      .map((item, index) => ({
-        name: `#${index + 1}`,
-        amount: Number(item.amount || 0),
-      }));
-  }, [transactions]);
-
-  // ----------------------------------------------------------
-  // RESULT RISK
-  // ----------------------------------------------------------
-
-  const resultProbability = result
-    ? Number(
-      result.fraud_probability ||
-      result.probability ||
-      0
-    )
-    : 0;
-
-  const isFraud =
-    result &&
-    String(result.prediction || "").toUpperCase() === "FRAUD";
+  const chartData = [
+    {
+      name: "Fraud",
+      value: fraudCount,
+    },
+    {
+      name: "Normal",
+      value: normalCount,
+    },
+  ];
 
   return (
-    <div className="dashboard-layout">
-
-      {/* ======================================================
-          SIDEBAR
-      ====================================================== */}
-
-      <aside className="sidebar">
-
-        <div className="sidebar-brand">
-          <div className="brand-shield">🛡️</div>
-
-          <div>
-            <h2>FraudGuard</h2>
-            <span>AI SECURITY</span>
-          </div>
+    <div className="dashboard-page">
+      <header className="dashboard-header">
+        <div>
+          <h1>🛡️ FraudGuard</h1>
+          <p>AI SECURITY</p>
         </div>
 
-        <div className="system-status">
-          <span className="status-dot"></span>
-          SYSTEM OPERATIONAL
-        </div>
-
-        <nav className="sidebar-nav">
-
-          <button className="active">
-            <span>⌂</span>
-            Dashboard
-          </button>
+        <div className="header-right">
+          <span>Welcome, {userName}</span>
 
           <button
-            onClick={() =>
-              document
-                .getElementById("analyzer")
-                ?.scrollIntoView({ behavior: "smooth" })
-            }
+            className="logout-button"
+            onClick={handleLogout}
           >
-            <span>◉</span>
-            Analyze
+            Logout
           </button>
-
-          <button
-            onClick={() =>
-              document
-                .getElementById("history")
-                ?.scrollIntoView({ behavior: "smooth" })
-            }
-          >
-            <span>☷</span>
-            Transactions
-          </button>
-
-        </nav>
-
-        <div className="sidebar-bottom">
-
-          <div className="security-mini">
-
-            <div className="mini-icon">✦</div>
-
-            <div>
-              <strong>AI Protection Active</strong>
-
-              <p>
-                Your transaction monitoring system is active.
-              </p>
-            </div>
-
-          </div>
-
-          <div className="user-mini">
-
-            <div className="avatar">
-              {(user.name || "S").charAt(0).toUpperCase()}
-            </div>
-
-            <div className="user-details">
-
-              <strong>{user.name || "sonu"}</strong>
-
-              <span>
-                {user.email || "sonu@gmail.com"}
-              </span>
-
-            </div>
-
-            <button onClick={logout}>↪</button>
-
-          </div>
-
         </div>
+      </header>
 
-      </aside>
-
-      {/* ======================================================
-          MAIN
-      ====================================================== */}
-
-      <main className="main-content">
-
-        <div className="top-mobile">
-
-          <div className="sidebar-brand">
-
-            <div className="brand-shield">🛡️</div>
-
-            <div>
-              <h2>FraudGuard</h2>
-              <span>AI SECURITY</span>
-            </div>
-
-          </div>
-
-          <button onClick={logout}>↪</button>
-
-        </div>
-
-        {/* HERO */}
-
+      <main className="dashboard-container">
         <section className="hero-section">
-
-          <div className="hero-copy">
-
-            <div className="live-badge">
-              <span></span>
-              LIVE MONITORING
-            </div>
-
-            <p className="eyebrow">
-              ✦ MACHINE LEARNING SECURITY
+          <div>
+            <h2>Fraud Detection Dashboard</h2>
+            <p>
+              Analyze transactions using your machine learning
+              fraud detection model.
             </p>
-
-            <h1>
-              Monitor.
-              <br />
-              <span>Detect.</span>
-              <br />
-              Protect.
-            </h1>
-
-            <p className="hero-description">
-              Intelligent transaction analysis powered by
-              machine learning. Detect suspicious activity
-              before it becomes a threat.
-            </p>
-
-            <button
-              className="hero-button"
-              onClick={() =>
-                document
-                  .getElementById("analyzer")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
-            >
-              Analyze a transaction →
-            </button>
-
           </div>
-
-          <div className="hero-visual">
-
-            <div className="orbit orbit-one"></div>
-            <div className="orbit orbit-two"></div>
-
-            <div className="security-core">
-              <div className="core-shield">🛡️</div>
-              <span>AI</span>
-            </div>
-
-            <div className="floating-card card-a">
-              <span>RISK ENGINE</span>
-              <strong>ACTIVE</strong>
-            </div>
-
-            <div className="floating-card card-b">
-              <span>MODEL</span>
-              <strong>98.4%</strong>
-            </div>
-
-          </div>
-
         </section>
-
-        {/* STATS */}
 
         <section className="stats-grid">
-
           <div className="stat-card">
-            <div className="stat-icon purple">◈</div>
-            <span>TOTAL ANALYZED</span>
-            <strong>{stats.total}</strong>
-            <small>All transactions</small>
+            <span className="stat-icon">📊</span>
+            <div>
+              <p>Total Analyzed</p>
+              <h3>{totalAnalyzed}</h3>
+            </div>
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon red">⚠</div>
-            <span>FRAUD DETECTED</span>
-            <strong>{stats.fraud}</strong>
-
-            <small>
-              {stats.total
-                ? `${((stats.fraud / stats.total) * 100).toFixed(
-                  1
-                )}% detection rate`
-                : "0% detection rate"}
-            </small>
+            <span className="stat-icon">🚨</span>
+            <div>
+              <p>Fraud Detected</p>
+              <h3>{fraudCount}</h3>
+            </div>
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon green">✓</div>
-            <span>SAFE TRANSACTIONS</span>
-            <strong>{stats.normal}</strong>
-            <small>Normal activity</small>
+            <span className="stat-icon">✅</span>
+            <div>
+              <p>Normal</p>
+              <h3>{normalCount}</h3>
+            </div>
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon orange">◉</div>
-            <span>AVERAGE RISK</span>
-            <strong>{stats.averageRisk.toFixed(1)}%</strong>
-            <small>AI risk score</small>
+            <span className="stat-icon">💰</span>
+            <div>
+              <p>Total Amount</p>
+              <h3>₹{totalAmount.toFixed(0)}</h3>
+            </div>
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon blue">₹</div>
-            <span>TOTAL AMOUNT</span>
-
-            <strong>
-              ₹{stats.totalAmount.toLocaleString("en-IN")}
-            </strong>
-
-            <small>Analyzed value</small>
+            <span className="stat-icon">📈</span>
+            <div>
+              <p>Avg. Fraud Risk</p>
+              <h3>{averageRisk.toFixed(2)}%</h3>
+            </div>
           </div>
 
+          <div className="stat-card">
+            <span className="stat-icon">🤖</span>
+            <div>
+              <p>Model</p>
+              <h3>ML</h3>
+            </div>
+          </div>
         </section>
 
-        {/* CHARTS */}
-
-        <section className="charts-grid">
-
-          <div className="chart-card">
-
-            <div className="chart-header">
-
-              <div>
-                <p className="eyebrow">SECURITY ANALYTICS</p>
-                <h2>Risk Trend</h2>
-              </div>
-
-              <span className="chart-live">
-                ● LIVE
-              </span>
-
+        <section className="content-grid">
+          <div className="panel prediction-panel">
+            <div className="panel-header">
+              <h2>Analyze Transaction</h2>
+              <p>Enter transaction details below.</p>
             </div>
 
-            {riskChartData.length === 0 ? (
-
-              <div className="empty-chart">
-                Analyze transactions to generate risk analytics.
-              </div>
-
-            ) : (
-
-              <div className="chart-container">
-
-                <ResponsiveContainer width="100%" height={260}>
-
-                  <AreaChart data={riskChartData}>
-
-                    <defs>
-
-                      <linearGradient
-                        id="riskGradient"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-
-                        <stop
-                          offset="0%"
-                          stopColor="#8b5cf6"
-                          stopOpacity={0.45}
-                        />
-
-                        <stop
-                          offset="100%"
-                          stopColor="#8b5cf6"
-                          stopOpacity={0}
-                        />
-
-                      </linearGradient>
-
-                    </defs>
-
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#24243a"
-                    />
-
-                    <XAxis
-                      dataKey="name"
-                      stroke="#71718a"
-                    />
-
-                    <YAxis
-                      stroke="#71718a"
-                      domain={[0, 100]}
-                    />
-
-                    <Tooltip />
-
-                    <Area
-                      type="monotone"
-                      dataKey="risk"
-                      stroke="#9b7cff"
-                      fill="url(#riskGradient)"
-                      strokeWidth={3}
-                    />
-
-                  </AreaChart>
-
-                </ResponsiveContainer>
-
+            {error && (
+              <div className="error-message">
+                {error}
               </div>
             )}
 
-          </div>
+            {result && (
+              <div
+                className={`prediction-result ${result.prediction === "FRAUD"
+                    ? "fraud-result"
+                    : "normal-result"
+                  }`}
+              >
+                <div className="result-icon">
+                  {result.prediction === "FRAUD"
+                    ? "🚨"
+                    : "✅"}
+                </div>
 
-          <div className="chart-card">
-
-            <div className="chart-header">
-
-              <div>
-                <p className="eyebrow">TRANSACTION ANALYTICS</p>
-                <h2>Transaction Amount</h2>
-              </div>
-
-              <span className="chart-live">
-                ₹ VALUE
-              </span>
-
-            </div>
-
-            {amountChartData.length === 0 ? (
-
-              <div className="empty-chart">
-                Analyze transactions to generate amount analytics.
-              </div>
-
-            ) : (
-
-              <div className="chart-container">
-
-                <ResponsiveContainer width="100%" height={260}>
-
-                  <BarChart data={amountChartData}>
-
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#24243a"
-                    />
-
-                    <XAxis
-                      dataKey="name"
-                      stroke="#71718a"
-                    />
-
-                    <YAxis
-                      stroke="#71718a"
-                    />
-
-                    <Tooltip />
-
-                    <Bar
-                      dataKey="amount"
-                      fill="#6366f1"
-                      radius={[8, 8, 0, 0]}
-                    />
-
-                  </BarChart>
-
-                </ResponsiveContainer>
-
+                <div>
+                  <p>Prediction</p>
+                  <h2>{result.prediction}</h2>
+                  <strong>
+                    Fraud Probability:{" "}
+                    {result.fraud_probability}%
+                  </strong>
+                </div>
               </div>
             )}
-
-          </div>
-
-        </section>
-
-        {/* ANALYZER */}
-
-        <section
-          className="workspace-grid"
-          id="analyzer"
-        >
-
-          <div className="analyzer-card">
-
-            <div className="section-heading">
-
-              <div className="section-icon">
-                ✦
-              </div>
-
-              <div>
-
-                <p className="eyebrow">AI ENGINE</p>
-
-                <h2>Analyze Transaction</h2>
-
-                <p>
-                  Enter transaction details to calculate fraud
-                  probability.
-                </p>
-
-              </div>
-
-              <div className="online-badge">
-                <span></span>
-                MODEL ONLINE
-              </div>
-
-            </div>
 
             <form
               className="transaction-form"
-              onSubmit={analyzeTransaction}
+              onSubmit={handlePredict}
             >
+              <div className="form-row">
+                <div>
+                  <label>Amount (₹)</label>
 
-              <div className="form-grid">
-
-                <div className="field">
-
-                  <label>Transaction Amount</label>
-
-                  <div className="input-wrap">
-
-                    <span>₹</span>
-
-                    <input
-                      type="number"
-                      name="amount"
-                      placeholder="10,000"
-                      value={form.amount}
-                      onChange={handleChange}
-                      required
-                    />
-
-                  </div>
-
+                  <input
+                    type="number"
+                    name="amount"
+                    placeholder="10000"
+                    value={form.amount}
+                    onChange={handleChange}
+                    min="0"
+                    step="0.01"
+                    required
+                  />
                 </div>
-
-                <div className="field">
-
-                  <label>Transaction Hour</label>
-
-                  <div className="input-wrap">
-
-                    <span>◷</span>
-
-                    <input
-                      type="number"
-                      name="transactionHour"
-                      min="0"
-                      max="23"
-                      placeholder="14"
-                      value={form.transactionHour}
-                      onChange={handleChange}
-                      required
-                    />
-
-                  </div>
-
-                </div>
-
-                <div className="field">
-
-                  <label>Distance From Home</label>
-
-                  <div className="input-wrap">
-
-                    <span>⌖</span>
-
-                    <input
-                      type="number"
-                      name="distanceFromHome"
-                      placeholder="5"
-                      value={form.distanceFromHome}
-                      onChange={handleChange}
-                      required
-                    />
-
-                    <small>KM</small>
-
-                  </div>
-
-                </div>
-
-                <div className="field">
-
-                  <label>Transactions Last 24 Hours</label>
-
-                  <div className="input-wrap">
-
-                    <span>↻</span>
-
-                    <input
-                      type="number"
-                      name="transactionsLast24h"
-                      placeholder="2"
-                      value={form.transactionsLast24h}
-                      onChange={handleChange}
-                      required
-                    />
-
-                  </div>
-
-                </div>
-
-                <div className="field">
-
-                  <label>Account Age</label>
-
-                  <div className="input-wrap">
-
-                    <span>◫</span>
-
-                    <input
-                      type="number"
-                      name="accountAgeDays"
-                      placeholder="500"
-                      value={form.accountAgeDays}
-                      onChange={handleChange}
-                      required
-                    />
-
-                    <small>DAYS</small>
-
-                  </div>
-
-                </div>
-
-                <div className="field">
-
-                  <label>Merchant Risk (%)</label>
-
-                  <div className="input-wrap">
-
-                    <span>◆</span>
-
-                    <input
-                      type="number"
-                      name="merchantRisk"
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      placeholder="20"
-                      value={form.merchantRisk}
-                      onChange={handleChange}
-                      required
-                    />
-
-                    <small>%</small>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-              <div className="device-field">
 
                 <div>
+                  <label>Transaction Hour</label>
 
-                  <label>Device Changed?</label>
-
-                  <p>
-                    Was this transaction made from a new device?
-                  </p>
-
+                  <input
+                    type="number"
+                    name="transactionHour"
+                    placeholder="14"
+                    value={form.transactionHour}
+                    onChange={handleChange}
+                    min="0"
+                    max="23"
+                    required
+                  />
                 </div>
-
-                <div className="toggle-group">
-
-                  <button
-                    type="button"
-                    className={
-                      form.deviceChange === "0"
-                        ? "toggle active"
-                        : "toggle"
-                    }
-                    onClick={() =>
-                      setForm((p) => ({
-                        ...p,
-                        deviceChange: "0",
-                      }))
-                    }
-                  >
-                    No
-                  </button>
-
-                  <button
-                    type="button"
-                    className={
-                      form.deviceChange === "1"
-                        ? "toggle active"
-                        : "toggle"
-                    }
-                    onClick={() =>
-                      setForm((p) => ({
-                        ...p,
-                        deviceChange: "1",
-                      }))
-                    }
-                  >
-                    Yes
-                  </button>
-
-                </div>
-
               </div>
 
-              {error && (
-                <div className="error-box">
-                  {error}
+              <div className="form-row">
+                <div>
+                  <label>Distance From Home (km)</label>
+
+                  <input
+                    type="number"
+                    name="distanceFromHome"
+                    placeholder="5"
+                    value={form.distanceFromHome}
+                    onChange={handleChange}
+                    min="0"
+                    step="0.1"
+                    required
+                  />
                 </div>
-              )}
+
+                <div>
+                  <label>Transactions Last 24h</label>
+
+                  <input
+                    type="number"
+                    name="transactionsLast24h"
+                    placeholder="3"
+                    value={form.transactionsLast24h}
+                    onChange={handleChange}
+                    min="0"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div>
+                  <label>Account Age (days)</label>
+
+                  <input
+                    type="number"
+                    name="accountAgeDays"
+                    placeholder="365"
+                    value={form.accountAgeDays}
+                    onChange={handleChange}
+                    min="0"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label>Merchant Risk (%)</label>
+
+                  <input
+                    type="number"
+                    name="merchantRisk"
+                    placeholder="50"
+                    value={form.merchantRisk}
+                    onChange={handleChange}
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label>Device Changed?</label>
+
+                <select
+                  name="deviceChange"
+                  value={form.deviceChange}
+                  onChange={handleChange}
+                >
+                  <option value="0">
+                    No
+                  </option>
+
+                  <option value="1">
+                    Yes
+                  </option>
+                </select>
+              </div>
 
               <button
                 className="analyze-button"
-                disabled={analyzing}
+                type="submit"
+                disabled={loading}
               >
-                {analyzing
+                {loading
                   ? "Analyzing..."
-                  : "✦ Analyze Transaction →"}
+                  : "Analyze Transaction →"}
               </button>
-
             </form>
-
           </div>
 
-          {/* RESULT */}
-
-          <div className="prediction-card">
-
-            <div className="prediction-header">
-
-              <div>
-                <p className="eyebrow">AI PREDICTION</p>
-                <h2>Risk Assessment</h2>
-              </div>
-
-              <div className="ml-badge">
-                ML
-              </div>
-
+          <div className="panel chart-panel">
+            <div className="panel-header">
+              <h2>Transaction Overview</h2>
+              <p>Fraud vs normal transactions.</p>
             </div>
 
-            {!result ? (
+            {transactions.length > 0 ? (
+              <ResponsiveContainer
+                width="100%"
+                height={320}
+              >
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                      />
+                    ))}
+                  </Pie>
 
-              <div className="ready-state">
+                  <Tooltip />
 
-                <div className="ready-icon">
-                  ✦
-                </div>
-
-                <h3>Ready for analysis</h3>
-
-                <p>
-                  Enter transaction details and run the AI model
-                  to calculate fraud probability.
-                </p>
-
-                <div className="model-label">
-                  ✦ Logistic Regression Model
-                </div>
-
-              </div>
-
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             ) : (
-
-              <div className="result-state">
-
-                <div
-                  className={
-                    isFraud
-                      ? "result-icon fraud"
-                      : "result-icon safe"
-                  }
-                >
-                  {isFraud ? "⚠" : "✓"}
-                </div>
-
-                <div
-                  className={
-                    isFraud
-                      ? "result-status fraud-text"
-                      : "result-status safe-text"
-                  }
-                >
-                  {String(
-                    result.prediction || ""
-                  ).toUpperCase()}
-                </div>
-
-                <div className="risk-number">
-                  {resultProbability.toFixed(1)}%
-                </div>
-
-                <p>Fraud Probability</p>
-
-                <div className="risk-bar">
-
-                  <div
-                    className={
-                      isFraud
-                        ? "risk-fill fraud-fill"
-                        : "risk-fill safe-fill"
-                    }
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        Math.max(0, resultProbability)
-                      )}%`,
-                    }}
-                  ></div>
-
-                </div>
-
-                <div className="risk-labels">
-                  <span>LOW RISK</span>
-                  <span>HIGH RISK</span>
-                </div>
-
+              <div className="empty-chart">
+                <div>📊</div>
+                <p>No transactions analyzed yet.</p>
               </div>
             )}
-
           </div>
-
         </section>
 
-        {/* HISTORY */}
-
-        <section
-          className="history-card"
-          id="history"
-        >
-
-          <div className="history-header">
-
-            <div>
-
-              <p className="eyebrow">ACTIVITY</p>
-
-              <h2>Transaction History</h2>
-
-              <p>
-                Recently analyzed transactions.
-              </p>
-
-            </div>
-
-            <button
-              className="refresh-button"
-              onClick={loadTransactions}
-            >
-              ↻ Refresh
-            </button>
-
+        <section className="panel history-panel">
+          <div className="panel-header">
+            <h2>Recent Transactions</h2>
+            <p>Your latest fraud analysis results.</p>
           </div>
 
-          <div className="history-toolbar">
-
-            <div className="filter-tabs">
-
-              <button
-                className={
-                  filter === "ALL"
-                    ? "selected"
-                    : ""
-                }
-                onClick={() => setFilter("ALL")}
-              >
-                All
-              </button>
-
-              <button
-                className={
-                  filter === "FRAUD"
-                    ? "selected"
-                    : ""
-                }
-                onClick={() => setFilter("FRAUD")}
-              >
-                Fraud
-              </button>
-
-              <button
-                className={
-                  filter === "NORMAL"
-                    ? "selected"
-                    : ""
-                }
-                onClick={() => setFilter("NORMAL")}
-              >
-                Normal
-              </button>
-
-            </div>
-
-            <div className="search-box">
-
-              ⌕
-
-              <input
-                placeholder="Search transactions..."
-                value={search}
-                onChange={(e) =>
-                  setSearch(e.target.value)
-                }
-              />
-
-            </div>
-
-          </div>
-
-          {loadingTransactions ? (
-
+          {transactions.length === 0 ? (
             <div className="empty-history">
-              Loading transactions...
+              No transactions available.
             </div>
-
-          ) : filteredTransactions.length === 0 ? (
-
-            <div className="empty-history">
-
-              <div className="empty-icon">
-                ▣
-              </div>
-
-              <h3>No transactions found</h3>
-
-              <p>
-                Analyze a transaction to see your results here.
-              </p>
-
-            </div>
-
           ) : (
-
             <div className="table-wrapper">
-
               <table>
-
                 <thead>
-
                   <tr>
                     <th>ID</th>
                     <th>Amount</th>
+                    <th>Hour</th>
+                    <th>Distance</th>
+                    <th>Merchant Risk</th>
                     <th>Prediction</th>
                     <th>Fraud Probability</th>
-                    <th>Status</th>
                   </tr>
-
                 </thead>
 
                 <tbody>
+                  {transactions.map((transaction) => (
+                    <tr key={transaction.id}>
+                      <td>#{transaction.id}</td>
 
-                  {filteredTransactions.map(
-                    (item, index) => {
+                      <td>
+                        ₹
+                        {Number(
+                          transaction.amount || 0
+                        ).toFixed(2)}
+                      </td>
 
-                      const prediction = String(
-                        item.prediction ||
-                        item.result ||
-                        "NORMAL"
-                      ).toUpperCase();
+                      <td>
+                        {transaction.transaction_hour}
+                      </td>
 
-                      const probability = Number(
-                        item.fraud_probability ||
-                        item.probability ||
-                        0
-                      );
+                      <td>
+                        {transaction.distance_from_home} km
+                      </td>
 
-                      const fraud =
-                        prediction === "FRAUD";
+                      <td>
+                        {(
+                          Number(
+                            transaction.merchant_risk || 0
+                          ) * 100
+                        ).toFixed(1)}
+                        %
+                      </td>
 
-                      return (
-                        <tr
-                          key={
-                            item.id ||
-                            index
+                      <td>
+                        <span
+                          className={
+                            transaction.prediction ===
+                              "FRAUD"
+                              ? "badge fraud-badge"
+                              : "badge normal-badge"
                           }
                         >
+                          {transaction.prediction}
+                        </span>
+                      </td>
 
-                          <td>
-                            #{item.id || index + 1}
-                          </td>
-
-                          <td>
-                            ₹
-                            {Number(
-                              item.amount || 0
-                            ).toLocaleString(
-                              "en-IN"
-                            )}
-                          </td>
-
-                          <td>
-
-                            <span
-                              className={
-                                fraud
-                                  ? "prediction-pill fraud-pill"
-                                  : "prediction-pill normal-pill"
-                              }
-                            >
-                              {fraud
-                                ? "⚠ FRAUD"
-                                : "✓ NORMAL"}
-                            </span>
-
-                          </td>
-
-                          <td>
-
-                            <div className="probability-cell">
-
-                              <span>
-                                {probability.toFixed(
-                                  1
-                                )}
-                                %
-                              </span>
-
-                              <div className="mini-bar">
-
-                                <div
-                                  style={{
-                                    width: `${Math.min(
-                                      100,
-                                      Math.max(
-                                        0,
-                                        probability
-                                      )
-                                    )}%`,
-                                  }}
-                                ></div>
-
-                              </div>
-
-                            </div>
-
-                          </td>
-
-                          <td>
-
-                            <span className="status-text">
-                              ● Analyzed
-                            </span>
-
-                          </td>
-
-                        </tr>
-                      );
-                    }
-                  )}
-
+                      <td>
+                        {transaction.fraud_probability}%
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
-
               </table>
-
             </div>
           )}
-
         </section>
-
-        {/* FOOTER */}
-
-        <footer className="footer">
-
-          <span>
-            🛡️ <strong>FraudGuard AI</strong>
-          </span>
-
-          <span>
-            Machine Learning Fraud Detection System
-          </span>
-
-          <span>
-            © 2026
-          </span>
-
-        </footer>
-
       </main>
     </div>
   );
@@ -1558,39 +894,57 @@ function Dashboard() {
 // ============================================================
 
 function App() {
+  const token = localStorage.getItem("token");
+
   return (
-    <BrowserRouter>
+    <Routes>
+      <Route
+        path="/"
+        element={
+          token ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
 
-      <Routes>
+      <Route
+        path="/login"
+        element={<Login />}
+      />
 
-        <Route
-          path="/"
-          element={<Login />}
-        />
+      <Route
+        path="/register"
+        element={<Register />}
+      />
 
-        <Route
-          path="/register"
-          element={<Register />}
-        />
+      <Route
+        path="/dashboard"
+        element={<Dashboard />}
+      />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="*"
-          element={<Navigate to="/" replace />}
-        />
-
-      </Routes>
-
-    </BrowserRouter>
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to={token ? "/dashboard" : "/login"}
+            replace
+          />
+        }
+      />
+    </Routes>
   );
 }
 
-export default App;
+// ============================================================
+// EXPORT
+// ============================================================
+
+export default function RootApp() {
+  return (
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  );
+}
