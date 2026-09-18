@@ -762,5 +762,781 @@ The application has been tested locally with:
 
 The next stage is GitHub publication and cloud deployment.
 
+\# 🛡️ FraudGuard AI
+
+
+
+\### AI-Powered Fraud Detection System
+
+
+
+FraudGuard AI is a machine-learning-based web application that analyzes financial transactions and predicts whether a transaction is \*\*FRAUD\*\* or \*\*NORMAL\*\*.
+
+
+
+It provides a dashboard for transaction analysis, fraud probability, transaction history, and authentication.
+
+
+
+\---
+
+
+
+\## 🚀 Live Demo
+
+
+
+🌐 \*\*Live Application:\*\*
+
+https://fraudguard-ai-frontend.onrender.com
+
+
+
+🔗 \*\*Backend API:\*\*
+
+https://fraudguard-ai-te8y.onrender.com
+
+
+
+📚 \*\*API Documentation:\*\*
+
+https://fraudguard-ai-te8y.onrender.com/docs
+
+
+
+\---
+
+
+
+\## ✨ Features
+
+
+
+\* 🔐 User Registration \& Login
+
+\* 🛡️ JWT-based Authentication
+
+\* 🤖 Machine Learning Fraud Detection
+
+\* 📊 Fraud Probability Prediction
+
+\* 💰 Transaction Amount Analysis
+
+\* 🌍 Distance From Home Analysis
+
+\* 🏪 Merchant Risk Analysis
+
+\* 📱 Device Change Detection
+
+\* 📈 Transaction Statistics
+
+\* 📋 Transaction History
+
+\* 📊 Fraud vs Normal Transaction Chart
+
+\* ⚡ FastAPI Backend
+
+\* ⚛️ React + Vite Frontend
+
+\* 🗄️ SQLite Database
+
+\* ☁️ Render Deployment
+
+
+
+\---
+
+
+
+\## 🧠 Machine Learning
+
+
+
+FraudGuard AI uses a \*\*Logistic Regression\*\* machine learning model to classify transactions.
+
+
+
+\### Input Features
+
+
+
+| Feature               | Description                                            |
+
+| --------------------- | ------------------------------------------------------ |
+
+| Amount                | Transaction amount                                     |
+
+| Transaction Hour      | Hour when transaction occurred                         |
+
+| Distance From Home    | Distance between transaction and user's home           |
+
+| Transactions Last 24h | Number of transactions in the previous 24 hours        |
+
+| Account Age           | Age of the account in days                             |
+
+| Merchant Risk         | Risk level of the merchant                             |
+
+| Device Change         | Whether the transaction was made from a changed device |
+
+
+
+\### Output
+
+
+
+The model returns:
+
+
+
+\* \*\*FRAUD\*\* or \*\*NORMAL\*\*
+
+\* \*\*Fraud Probability (%)\*\*
+
+
+
+\---
+
+
+
+\## 🏗️ Tech Stack
+
+
+
+\### Frontend
+
+
+
+\* React
+
+\* Vite
+
+\* JavaScript
+
+\* React Router
+
+\* Recharts
+
+\* CSS
+
+
+
+\### Backend
+
+
+
+\* Python
+
+\* FastAPI
+
+\* Pydantic
+
+\* JWT Authentication
+
+\* SQLite
+
+\* Uvicorn
+
+
+
+\### Machine Learning
+
+
+
+\* Scikit-learn
+
+\* Pandas
+
+\* NumPy
+
+\* Joblib
+
+\* Logistic Regression
+
+
+
+\### Deployment
+
+
+
+\* Render
+
+\* GitHub
+
+
+
+\---
+
+
+
+\## 📂 Project Structure
+
+
+
+```text
+
+Fraud-Detection-System/
+
+│
+
+├── data/
+
+│   └── transactions.csv
+
+│
+
+├── fraud-frontend/
+
+│   ├── public/
+
+│   ├── src/
+
+│   │   ├── App.jsx
+
+│   │   ├── App.css
+
+│   │   ├── index.css
+
+│   │   └── main.jsx
+
+│   ├── package.json
+
+│   └── vite.config.js
+
+│
+
+├── models/
+
+│   ├── fraud\_model.pkl
+
+│   └── scaler.pkl
+
+│
+
+├── notebooks/
+
+│
+
+├── outputs/
+
+│   ├── confusion\_matrix.png
+
+│   └── roc\_curve.png
+
+│
+
+├── src/
+
+│   ├── create\_dataset.py
+
+│   ├── explore\_data.py
+
+│   ├── train\_model.py
+
+│   └── evaluate\_model.py
+
+│
+
+├── auth.py
+
+├── database.py
+
+├── main.py
+
+├── requirements.txt
+
+├── README.md
+
+└── .gitignore
+
+```
+
+
+
+\---
+
+
+
+\## 🔄 Application Flow
+
+
+
+```text
+
+User
+
+&#x20; ↓
+
+React Frontend
+
+&#x20; ↓
+
+FastAPI Backend
+
+&#x20; ↓
+
+Input Validation
+
+&#x20; ↓
+
+Feature Scaling
+
+&#x20; ↓
+
+Machine Learning Model
+
+&#x20; ↓
+
+Fraud Prediction
+
+&#x20; ↓
+
+Fraud Probability
+
+&#x20; ↓
+
+SQLite Database
+
+&#x20; ↓
+
+Dashboard / Transaction History
+
+```
+
+
+
+\---
+
+
+
+\## 🔐 Authentication
+
+
+
+FraudGuard AI includes:
+
+
+
+\* User registration
+
+\* User login
+
+\* Password authentication
+
+\* JWT access tokens
+
+\* Protected application flow
+
+
+
+\---
+
+
+
+\## 📊 Dashboard
+
+
+
+The dashboard displays:
+
+
+
+\* Total transactions analyzed
+
+\* Fraud transactions
+
+\* Normal transactions
+
+\* Total transaction amount
+
+\* Average fraud risk
+
+\* ML model status
+
+\* Fraud vs normal transaction chart
+
+\* Recent transaction history
+
+
+
+\---
+
+
+
+\## 🧪 Example Transaction
+
+
+
+Example input:
+
+
+
+```text
+
+Amount:                 ₹10,000
+
+Transaction Hour:       23
+
+Distance From Home:     100 km
+
+Transactions Last 24h:  8
+
+Account Age:            30 days
+
+Merchant Risk:          80%
+
+Device Changed:         Yes
+
+```
+
+
+
+The machine learning model analyzes these features and returns a fraud classification and probability.
+
+
+
+\---
+
+
+
+\## 🛠️ Run Locally
+
+
+
+\### 1. Clone the repository
+
+
+
+```bash
+
+git clone https://github.com/sonu-balagavi15/FraudGuard-AI.git
+
+cd FraudGuard-AI
+
+```
+
+
+
+\### 2. Create Python virtual environment
+
+
+
+```bash
+
+python -m venv venv
+
+```
+
+
+
+\### 3. Activate virtual environment
+
+
+
+Windows PowerShell:
+
+
+
+```powershell
+
+.\\venv\\Scripts\\Activate.ps1
+
+```
+
+
+
+\### 4. Install backend dependencies
+
+
+
+```bash
+
+pip install -r requirements.txt
+
+```
+
+
+
+\### 5. Start the backend
+
+
+
+```bash
+
+python -m uvicorn main:app --reload
+
+```
+
+
+
+Backend:
+
+
+
+```text
+
+http://127.0.0.1:8000
+
+```
+
+
+
+API documentation:
+
+
+
+```text
+
+http://127.0.0.1:8000/docs
+
+```
+
+
+
+\---
+
+
+
+\## 💻 Run Frontend
+
+
+
+Open another terminal:
+
+
+
+```powershell
+
+cd fraud-frontend
+
+npm install
+
+npm run dev
+
+```
+
+
+
+Frontend:
+
+
+
+```text
+
+http://localhost:5173
+
+```
+
+
+
+\---
+
+
+
+\## 📡 API Endpoints
+
+
+
+\### Authentication
+
+
+
+```text
+
+POST /auth/register
+
+POST /auth/login
+
+```
+
+
+
+\### Fraud Detection
+
+
+
+```text
+
+POST /predict
+
+```
+
+
+
+\### Transactions
+
+
+
+```text
+
+GET /transactions
+
+GET /transactions/{transaction\_id}
+
+```
+
+
+
+\### Health
+
+
+
+```text
+
+GET /health
+
+```
+
+
+
+\---
+
+
+
+\## 📈 Model Evaluation
+
+
+
+The project includes model evaluation outputs such as:
+
+
+
+\* Confusion Matrix
+
+\* ROC Curve
+
+
+
+Located inside:
+
+
+
+```text
+
+outputs/
+
+```
+
+
+
+\---
+
+
+
+\## 🌐 Deployment
+
+
+
+The application is deployed using \*\*Render\*\*.
+
+
+
+\### Frontend
+
+
+
+```text
+
+https://fraudguard-ai-frontend.onrender.com
+
+```
+
+
+
+\### Backend
+
+
+
+```text
+
+https://fraudguard-ai-te8y.onrender.com
+
+```
+
+
+
+\### Swagger API
+
+
+
+```text
+
+https://fraudguard-ai-te8y.onrender.com/docs
+
+```
+
+
+
+\---
+
+
+
+\## 🔮 Future Improvements
+
+
+
+\* PostgreSQL database for persistent production storage
+
+\* Advanced fraud detection models
+
+\* Real-time transaction monitoring
+
+\* Email/SMS fraud alerts
+
+\* Admin dashboard
+
+\* User profile management
+
+\* Advanced analytics
+
+\* Model performance monitoring
+
+\* Docker deployment
+
+\* Cloud-based ML model serving
+
+
+
+\---
+
+
+
+\## 👨‍💻 Author
+
+
+
+\*\*Sonu Parashuram Balagavi\*\*
+
+
+
+🎓 B.E. Computer Science Engineering
+
+
+
+🔗 \*\*GitHub:\*\*
+
+https://github.com/sonu-balagavi15
+
+
+
+🔗 \*\*LinkedIn:\*\*
+
+https://www.linkedin.com/in/sonu-balagavi
+
+
+
+\---
+
+
+
+\## ⭐ Project
+
+
+
+If you find this project useful, consider giving the repository a ⭐ on GitHub.
+
+
+
+\*\*FraudGuard AI — Detect suspicious transactions with Machine Learning.\*\*
+
 
 
